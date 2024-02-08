@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/charmbracelet/huh"
 )
 
 func main() {
 
-	body :=httpGetRequest("http://localhost:8080/questions")
-	questions :=*convertUint8ToQuestions(body)
+	data :=httpGetRequest("http://localhost:8080/questions")
+	questions :=*convertUint8ToQuestions(data)
 
 	var options [] huh.Option[string]
 
@@ -27,13 +28,15 @@ func main() {
 	selectedData := httpGetRequest(url)
 	selectedQuestion := *convertUint8ToQuestion(selectedData)
 
-	fmt.Printf("Title: %v \n",selectedQuestion.Title)
-	fmt.Printf("Desription: %v \n",selectedQuestion.Description)
-	fmt.Printf("Level: %v \n",selectedQuestion.Level)
-	//add examples from the test case field.
+	printQuestionDetails(selectedQuestion)
 
-	code := displayAnswerInterface(language)
+	code := displayAnswerInterface(language,selectedQuestion.TestCases[0])
 
+	//add execute command for any test case.
+	for _,tCase := range(selectedQuestion.TestCases){
+		code = fmt.Sprintf("%v\nsolution(%v)",code,inputsStringValues(tCase))
+	} 
+	
 	fmt.Println("code  =",code)
 
 }
