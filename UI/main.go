@@ -2,42 +2,54 @@ package main
 
 import (
 	"fmt"
+	"net/url"
+	"net/http"
 
 	"github.com/charmbracelet/huh"
 )
 
 func main() {
 
-	data :=httpGetRequest("http://localhost:8080/questions")
-	questions :=*convertUint8ToQuestions(data)
+	resData := httpGetRequest("http://localhost:8080/questions")
+	questions := *convertUint8ToQuestions(resData)
 
-	var options [] huh.Option[string]
+	var options []huh.Option[string]
 
 	// Loop through questions and add titles as options
 	for _, q := range questions {
 		options = append(options, huh.Option[string]{
-			Key: q.Title,
-			Value: q.ID, 
+			Key:   q.Title,
+			Value: q.ID,
 		})
 	}
-	
-	id,language := chooseQuestionAndLanguage(options)
 
-	url := fmt.Sprintf("http://localhost:8080/questions/%s",id)
+	id, language := chooseQuestionAndLanguage(options)//on pagination I will need to split this function
 
-	selectedData := httpGetRequest(url)
+	myurl := fmt.Sprintf("http://localhost:8080/questions/%s", id)
+
+	selectedData := httpGetRequest(myurl)
 	selectedQuestion := *convertUint8ToQuestion(selectedData)
 
 	printQuestionDetails(selectedQuestion)
 
-	code := displayAnswerInterface(language,selectedQuestion.TestCases[0])
+	code := displayAnswerInterface(language, selectedQuestion.TestCases[0])
 
-	//add execute command for any test case.
-	for _,tCase := range(selectedQuestion.TestCases){
-		code = fmt.Sprintf("%v\nsolution(%v)",code,inputsStringValues(tCase))
-	} 
+	data := url.Values{}
+	data.Set("code",code)
+	data.Set("language",language)
+	data.Set("question", string(selectedData))
+
+	response, err := http.PostForm("http://localhost:8080/runtest", data)//change run test to another name!
+	if err != nil{
+		println(err.Error())
+	}
 	
-	fmt.Println("code  =",code)
+	println(response.Body)
+
+	// //add execute command for any test case.
+	// for _,tCase := range(selectedQuestion.TestCases){
+	// 	code = fmt.Sprintf("%v\nsolution(%v)",code,inputsStringValues(tCase))
+	// }
 
 }
 

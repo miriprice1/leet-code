@@ -13,5 +13,7 @@ func main() {
     router.PUT("/questions/:id", UpdateQuestion)
     router.DELETE("/questions/:id", DeleteQuestion)
 
+    router.POST("/runtest", runTest )
+
     router.Run(":8080")
 }

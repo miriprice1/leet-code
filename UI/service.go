@@ -1,12 +1,12 @@
 package main
 
-import(
+import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"encoding/json"
-	"io/ioutil"
-	
+
 	"leet-code/share"
 	"github.com/charmbracelet/huh"
 )
@@ -62,26 +62,27 @@ func inputsStringNames(ex model.TestCase)string{
 	return params
 }
 
-func inputsStringValues(ex model.TestCase)interface{}{
-	params := ex.Input[0].Value
+// func inputsStringValues(ex model.TestCase)interface{}{
+// 	params := ex.Input[0].Value
 
-	if ex.Length>1{
-		for i := 1; i < int(ex.Length); i++ {
-			params = fmt.Sprintf("%v,%v",params,ex.Input[i].Value)
-		}
-	}
-	return params
-}
+// 	if ex.Length>1{
+// 		for i := 1; i < int(ex.Length); i++ {
+// 			params = fmt.Sprintf("%v,%v",params,ex.Input[i].Value)
+// 		}
+// 	}
+// 	return params
+// }
+
 
 
 func displayAnswerInterface(language string, testCase model.TestCase)string{
+	
 	var code string
-
 	params := inputsStringNames(testCase)
 
 	switch language {
 	case "python":
-		code = fmt.Sprintf("def solution(%v){\n\t\n}",params)//If there is time left - add a field of the function name and replace it with a "solution"
+		code = fmt.Sprintf("def solution(%v):\n\t",params)//If there is time left - add a field of the function name and replace it with a "solution"
 	case "js":
 		code = fmt.Sprintf("function solution(%v){\n\t\n};",params)
 	}
