@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"leet-code/share"
 
@@ -25,6 +28,14 @@ var collection *mongo.Collection
 var idCounter int
 var idCounterMutex sync.Mutex
 
+type Parameters struct {
+	Language   string
+	ScriptFile string
+	Param1     interface{}
+	Param2     interface{}
+	Output     interface{}
+}
+
 func init() {
 	clientOptions := options.Client().ApplyURI("mongodb://mongo:mongo@localhost:27017/questions?authSource=admin&authMechanism=SCRAM-SHA-256")
 	client, _ = mongo.Connect(context.Background(), clientOptions)
@@ -36,51 +47,51 @@ func init() {
 }
 
 func generateID() string {
-    idCounterMutex.Lock()
-    defer idCounterMutex.Unlock()
+	idCounterMutex.Lock()
+	defer idCounterMutex.Unlock()
 
-    for {
-        idCounter++
-        generatedID := strconv.Itoa(idCounter)
-        count, _ := collection.CountDocuments(context.Background(), bson.M{"_id": generatedID})
-        if count == 0 {
-            return generatedID
-        }
-    }
+	for {
+		idCounter++
+		generatedID := strconv.Itoa(idCounter)
+		count, _ := collection.CountDocuments(context.Background(), bson.M{"_id": generatedID})
+		if count == 0 {
+			return generatedID
+		}
+	}
 }
 
 // GetAllQuestions retrieves all questions from the database.
 func GetAllQuestions(c *gin.Context) {
 
 	// Parse page number and page size from query parameters
-    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-    pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 
-    // Calculate skip value based on page number and page size
-    skip := (page - 1) * pageSize
+	// Calculate skip value based on page number and page size
+	skip := (page - 1) * pageSize
 
-    // Define options for pagination
-    findOptions := options.Find()
-    findOptions.SetLimit(int64(pageSize))
-    findOptions.SetSkip(int64(skip))
+	// Define options for pagination
+	findOptions := options.Find()
+	findOptions.SetLimit(int64(pageSize))
+	findOptions.SetSkip(int64(skip))
 
-    // Query MongoDB for questions with pagination
-    cursor, err := collection.Find(context.Background(), bson.D{}, findOptions)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    defer cursor.Close(context.Background())
+	// Query MongoDB for questions with pagination
+	cursor, err := collection.Find(context.Background(), bson.D{}, findOptions)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer cursor.Close(context.Background())
 
-    var questions []model.Question
+	var questions []model.Question
 	//this is indices that all the data return,
-    if err := cursor.All(context.Background(), &questions); err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	if err := cursor.All(context.Background(), &questions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    // Return paginated questions
-    c.JSON(http.StatusOK, questions)
+	// Return paginated questions
+	c.JSON(http.StatusOK, questions)
 }
 
 // GetQuestionByID retrieves a question by its ID from the database.
@@ -154,27 +165,28 @@ func DeleteQuestion(c *gin.Context) {
 
 func runTest(c *gin.Context) {
 
-	code := c.PostForm("code") 
-    language := c.PostForm("language")
+	code := c.PostForm("code")
+	language := c.PostForm("language")
 	questionJSON := c.PostForm("question")
 
-    // Parse the question JSON into a struct
-    var question model.Question
-    if err := json.Unmarshal([]byte(questionJSON), &question); err != nil {
-        println(err.Error())
-    }
+	// Parse the question JSON into a struct
+	var question model.Question
+	if err := json.Unmarshal([]byte(questionJSON), &question); err != nil {
+		println(err.Error())
+	}
+	println("*******************************************************************************")
 	code = updateCode(code, language, question.TestCases[0])
 	//fmt.Println("code  =", code)
 	createScriptFile(code, language)
 	createDokerfile(language)
 	buildDockerImage(code)
+	time.Sleep(10 * time.Second)
 
+	isSuccecc := runJobOnK8s(language)
 
 	// Send the variables as a response
 	c.JSON(http.StatusOK, gin.H{
-		"code":     code,
-		"language": language,
-		"question": question,
+		"code": isSuccecc,
 	})
 }
 
@@ -184,57 +196,186 @@ func runTest(c *gin.Context) {
 //**********************************************************
 //**********************************************************
 
-func updateCode(code string, language string, tc model.TestCase)string{
-	
+func runJobOnK8s(language string) int {
+	var scriptMap = map[string]string{
+		"js":     "script.js",
+		"python": "script.py",
+	}
+	script := scriptMap[language]
+
+	if language == "js" {
+		language = "node"
+	}
+
+	params := Parameters{
+		Language:   language,
+		ScriptFile: script,
+		Param1:     5,
+		Param2:     20,
+		Output:     25,
+	}
+
+	yamlTemplate, err := ioutil.ReadFile("../templates/job.yaml")
+	if err != nil {
+		fmt.Println("Error reading template file:", err)
+		os.Exit(1)
+	}
+
+	tmpl, err := template.New("job").Parse(string(yamlTemplate))
+	if err != nil {
+		fmt.Println("Error parsing template:", err)
+		os.Exit(1)
+	}
+	var filledYAMLFile bytes.Buffer
+
+	err = tmpl.Execute(&filledYAMLFile, params)
+	if err != nil {
+		fmt.Println("Error filling in template:", err)
+		os.Exit(1)
+	}
+
+	_err := ioutil.WriteFile("job.yaml", filledYAMLFile.Bytes(), 0644)
+	if _err != nil {
+		fmt.Println("Error creating temporary file:", err)
+		os.Exit(1)
+	}
+	// tmpfile, err := ioutil.TempFile("", "job-*.yaml")
+	// if err != nil {
+	// 	fmt.Println("Error creating temporary file:", err)
+	// 	os.Exit(1)
+	// }
+	// defer os.Remove(tmpfile.Name()) // Clean up temporary file
+
+	// if _, err := tmpfile.Write(filledYAMLFile.Bytes()); err != nil {
+	// 	fmt.Println("Error writing to temporary file:", err)
+	// 	os.Exit(1)
+	// }
+
+	cmd := exec.Command("kubectl", "apply", "-f", "job.yaml")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error applying YAML:", err)
+		os.Exit(1)
+	}
+
+	exit := 0
+	cmd = exec.Command("kubectl", "wait", "job/function-test-job", "--for=condition=complete", "--timeout=30s")
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("Error waiting for job to complete:", err)
+		exit = 1
+	}
+	// time.Sleep(7 * time.Second)
+	// cmd = exec.Command("kubectl", "logs", "-l", "job-name=function-test-job")
+	// logs, err := cmd.Output()
+	// if err != nil {
+	// 	fmt.Println("Error getting logs:", err)
+	// 	os.Exit(1)
+	// }
+
+	// job, err := clientset.BatchV1().Jobs(namespace).Get(context.Background(), "your-job-name", metav1.GetOptions{})
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+
+	// if job.Status.Succeeded > 0 {
+	// 	fmt.Println("Job completed successfully")
+	// } else {
+	// 	fmt.Println("Job is still running or failed")
+	// }
+
+	cmd = exec.Command("kubectl", "delete", "job", "function-test-job")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error getting logs:", err)
+		os.Exit(1)
+	}
+
+	// Check if the logs are empty
+	// if len(strings.TrimSpace(string(logs))) == 0 {
+	// 	fmt.Println("Logs are empty, job completed successfully.")
+	// 	return 0
+	// } else {
+	// 	fmt.Println("Logs are not empty, job may have failed.")
+	// 	return 1
+	// }
+	return exit
+}
+
+func updateCode(code string, language string, tc model.TestCase) string {
+
 	var param string
 	switch language {
 	case "python":
 		for i := 0; i < int(tc.Length); i++ {
 			tN, isArr := typeName(tc.Input[i].Value)
-			if isArr {//change!!
-				//
-				param = fmt.Sprintf("%v\n\t%v = @(sys.argv[%v]) if len(sys.argv) > %v else None",param,tc.Input[i].Name,i+1,i+1)//tc.Input[i].Value
-			} else{
-				param = fmt.Sprintf("%v\n\t%v = %v(sys.argv[%v]) if len(sys.argv) > %v else None",param,tc.Input[i].Name,tN,i+1,i+1)//tc.Input[i].Value
+			if isArr { //change!!
+				param = fmt.Sprintf("%v\n\t%v = @(sys.argv[%v]) if len(sys.argv) > %v else None", param, tc.Input[i].Name, i+1, i+1) //tc.Input[i].Value
+			} else {
+				param = fmt.Sprintf("%v\n\t%v = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tc.Input[i].Name, tN, i+1, i+1) //tc.Input[i].Value
 			}
 		}
-		code = fmt.Sprintf("import sys\n%v\nif __name__ == \"__main__\":%v\n\tprint(solution(%v))",code,param,inputsStringNames(tc))
+		tN, isArr := typeName(tc.Output)
+		if isArr {
+			param = fmt.Sprintf("%v\n\toutput = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tN, tc.Length+1, tc.Length+1)
+		} else {
+			param = fmt.Sprintf("%v\n\toutput = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tN, tc.Length+1, tc.Length+1)
+		}
+		code = fmt.Sprintf("import sys\n%v\nif __name__ == \"__main__\":%v\n\tif solution(%v) == output:\n\t\texit(0)\n\telse:\n\t\texit(1)", code, param, inputsStringNames(tc))
 	case "js":
 		for i := 0; i < int(tc.Length); i++ {
 			tN, isArr := typeName(tc.Input[i].Value)
 			tN = strings.ToUpper(string(tN[0])) + tN[1:]
-			if isArr{//change!!
+			if isArr { //change!!
 				//
-				if tN == "Int" || tN =="Float"{
-					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])",param,tc.Input[i].Name,tN,i+2)//,tc.Input[i].Value
-				} else{
-					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]",param,tc.Input[i].Name,i+2)//X
+				if tN == "Int" || tN == "Float" {
+					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])", param, tc.Input[i].Name, tN, i+2) //,tc.Input[i].Value
+				} else {
+					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]", param, tc.Input[i].Name, i+2) //X
 				}
-			} else{
-				if tN == "Int" || tN =="Float"{
-					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])",param,tc.Input[i].Name,tN,i+2)//V
-				} else{
-					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]",param,tc.Input[i].Name,i+2)//V
+			} else {
+				if tN == "Int" || tN == "Float" {
+					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])", param, tc.Input[i].Name, tN, i+2) //V
+				} else {
+					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]", param, tc.Input[i].Name, i+2) //V
 				}
 			}
 		}
-		code = fmt.Sprintf("%v\n%v\nconsole.log(solution(%v))",code,param,inputsStringNames(tc))
+		tN, isArr := typeName(tc.Output)
+		tN = strings.ToUpper(string(tN[0])) + tN[1:]
+		if isArr { //change!!
+			//
+			if tN == "Int" || tN == "Float" {
+				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
+			} else {
+				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
+			}
+		} else {
+			if tN == "Int" || tN == "Float" {
+				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
+			} else {
+				param = fmt.Sprintf("%v\nconst output = process.argv[%v]", param, tc.Length+2) //V
+			}
+		}
+		code = fmt.Sprintf("%v\n%v\nif (solution(%v) == output) {\n\tprocess.exit(0);\n} else {\n\tprocess.exit(1);\n}", code, param, inputsStringNames(tc))
 	}
 	return code
 }
 
-func inputsStringNames(ex model.TestCase)string{
+func inputsStringNames(ex model.TestCase) string {
 	params := ex.Input[0].Name
 
-	if ex.Length>1{
+	if ex.Length > 1 {
 		for i := 1; i < int(ex.Length); i++ {
-			params = fmt.Sprintf("%v,%v",params,ex.Input[i].Name)
+			params = fmt.Sprintf("%v,%v", params, ex.Input[i].Name)
 		}
 	}
 	return params
 }
 
-func createScriptFile(code string, language string){
+func createScriptFile(code string, language string) {
 	var filePath string
 	switch language {
 	case "python":
@@ -243,18 +384,18 @@ func createScriptFile(code string, language string){
 		filePath = "../temp/script.js"
 	}
 
-    // Write content to the file
-    err := ioutil.WriteFile(filePath, []byte(code), 0644)
-    if err != nil {
-        fmt.Println("Error writing to file:", err)
-        return
-    }
+	// Write content to the file
+	err := ioutil.WriteFile(filePath, []byte(code), 0644)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
 
-    fmt.Println("Content successfully written to", filePath)
+	fmt.Println("Content successfully written to", filePath)
 
 }
-func createDokerfile(language string){
-	filePath :="../temp/Dockerfile"
+func createDokerfile(language string) {
+	filePath := "../temp/Dockerfile"
 	var code string
 	switch language {
 	case "python":
@@ -262,21 +403,21 @@ func createDokerfile(language string){
 	case "js":
 		code = "FROM node:14\nWORKDIR /app\nCOPY script.js .\nCMD [\"node\", \"script.js\"]"
 	}
-    // Write content to the file
-    err := ioutil.WriteFile(filePath, []byte(code), 0644)
-    if err != nil {
-        fmt.Println("Error writing to file:", err)
-        return
-    }
+	// Write content to the file
+	err := ioutil.WriteFile(filePath, []byte(code), 0644)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
 
-    fmt.Println("Content successfully written to", filePath)
+	fmt.Println("Content successfully written to", filePath)
 }
 
-func buildDockerImage(code string){
-	cmd:=exec.Command("sh", "-c", "cd ../temp && docker build -t test .")
+func buildDockerImage(code string) {
+	cmd := exec.Command("sh", "-c", "cd ../temp && docker build -t test .")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err :=cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		fmt.Println("Error building docker image", err)
 		return
@@ -284,20 +425,17 @@ func buildDockerImage(code string){
 	fmt.Println("Docker image build successfuly.")
 }
 
-func typeName(variable interface{})(string,bool){
-	
-	t := fmt.Sprintf("%T",variable)
-	isArray := strings.Contains(t,"[")
+func typeName(variable interface{}) (string, bool) {
 
-	if strings.Contains(t,"int"){
+	t := fmt.Sprintf("%T", variable)
+	isArray := strings.Contains(t, "[")
+
+	if strings.Contains(t, "int") {
 		return "int", isArray
 	}
-	if strings.Contains(t,"float"){
+	if strings.Contains(t, "float") {
 		return "float", isArray
 	}
 	return t, isArray
 
 }
-
-
-

@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/url"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/charmbracelet/huh"
 )
@@ -23,7 +24,7 @@ func main() {
 		})
 	}
 
-	id, language := chooseQuestionAndLanguage(options)//on pagination I will need to split this function
+	id, language := chooseQuestionAndLanguage(options) //on pagination I will need to split this function
 
 	myurl := fmt.Sprintf("http://localhost:8080/questions/%s", id)
 
@@ -35,17 +36,27 @@ func main() {
 	code := displayAnswerInterface(language, selectedQuestion.TestCases[0])
 
 	data := url.Values{}
-	data.Set("code",code)
-	data.Set("language",language)
+	data.Set("code", code)
+	data.Set("language", language)
 	data.Set("question", string(selectedData))
 
-	response, err := http.PostForm("http://localhost:8080/runtest", data)//change run test to another name!
-	if err != nil{
-		println(err.Error())
+	// Send HTTP POST request to the server
+	resp, err := http.PostForm("http://localhost:8080/runtest", data)
+	if err != nil {
+		println("Error sending POST request:", err.Error())
+		return
 	}
-	
-	println(response.Body)
+	defer resp.Body.Close()
 
+	// Read the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		println("Error reading response body:", err.Error())
+		return
+	}
+
+	// Print the response body
+	fmt.Println("Response from server:", string(body))
 	// //add execute command for any test case.
 	// for _,tCase := range(selectedQuestion.TestCases){
 	// 	code = fmt.Sprintf("%v\nsolution(%v)",code,inputsStringValues(tCase))
