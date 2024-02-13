@@ -1,0 +1,13 @@
+{{ .Code }}
+
+{{ range $index, $input := .Inputs }}
+const {{ $input.Name }} = {{ if not (eq $input.Type "") }}parse{{ end }}{{$input.Type}}(process.argv[{{ $index }} + 2])
+{{ end }}
+const output = {{ if not (eq .OutputType "") }}parse{{ end }}{{ .OutputType }}(process.argv[{{ .OutputIndex }} + 2])
+
+if (solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output){
+    process.exit(0)
+}
+else{
+    process.exit(1)
+}

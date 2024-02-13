@@ -1,0 +1,14 @@
+import sys
+
+{{ .Code }}
+
+if __name__ == "__main__":
+    {{ range $index, $input := .Inputs }}
+    {{ $input.Name }} = {{$input.Type}}(sys.argv[{{ $index }} + 1]) if len(sys.argv) > {{ $index }} + 1 else None
+    {{ end }}
+    output = {{ .OutputType }}(sys.argv[{{ .OutputIndex }}]) if len(sys.argv) > {{ .OutputIndex }} else None
+
+    if solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output:
+        exit(0)
+    else:
+        exit(1)
