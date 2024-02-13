@@ -46,6 +46,104 @@ func init() {
 	collection = client.Database("leet-code").Collection("questions")
 }
 
+type PythonTemplateData struct {
+	Inputs      []Input
+	Code        template.HTML
+	OutputIndex int
+	OutputType  string
+}
+
+type Input struct {
+	Name string
+	Type string
+}
+
+func updatePythonCode(code string, testCase model.TestCase) {
+
+	var inputs []Input
+	for _, tc := range testCase.Input {
+		typ := typeName(tc.Value)
+		if typ != "int" && typ != "float" && typ != "bool"{
+			typ = ""
+		}
+		inputs = append(inputs, Input{Name: tc.Name, Type: typ})
+	}
+
+	typ := typeName(testCase.Output)
+	if typ != "int" && typ != "float" && typ != "bool"{
+		typ = ""
+	}
+
+	data := PythonTemplateData{
+		Inputs:      inputs,
+		Code:        template.HTML(code),
+		OutputIndex: int(testCase.Length) + 1,
+		OutputType:  typ,
+	}
+
+	tmpl, err := template.ParseFiles("../templates/python_template.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	outputFile, err := os.Create("../temp/script.py")
+	if err != nil {
+		panic(err)
+	}
+	defer outputFile.Close()
+
+	err = tmpl.Execute(outputFile, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func updateJsCode(code string, testCase model.TestCase) {
+
+	var inputs []Input
+	for _, tc := range testCase.Input {
+		typ := typeName(tc.Value)
+		if typ != "int" && typ != "float" && typ != "bool"{
+			typ = ""
+		} else {
+			typ = strings.ToUpper(string(typ[0])) + typ[1:]
+		}
+		inputs = append(inputs, Input{Name: tc.Name, Type: typ})
+	}
+
+	typ := typeName(testCase.Output)
+	if typ != "int" && typ != "float" && typ != "bool"{
+		typ = ""
+	}else{
+		typ = strings.ToUpper(string(typ[0])) + typ[1:]
+	}
+
+	data := PythonTemplateData{
+		Inputs:      inputs,
+		Code:        template.HTML(code),
+		OutputIndex: int(testCase.Length),
+		OutputType:  typ,
+	}
+
+	tmpl, err := template.ParseFiles("../templates/js_template.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	outputFile, err := os.Create("../temp/script.js")
+	if err != nil {
+		panic(err)
+	}
+	defer outputFile.Close()
+
+	err = tmpl.Execute(outputFile, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+
+
 func generateID() string {
 	idCounterMutex.Lock()
 	defer idCounterMutex.Unlock()
@@ -175,9 +273,14 @@ func runTest(c *gin.Context) {
 		println(err.Error())
 	}
 	println("*******************************************************************************")
-	code = updateCode(code, language, question.TestCases[0])
+	if language == "python"{
+		updatePythonCode(code, question.TestCases[0])
+	}else{
+		updateJsCode(code, question.TestCases[0])
+	}
+	//code = updateCode(code, language, question.TestCases[0])
 	//fmt.Println("code  =", code)
-	createScriptFile(code, language)
+	//createScriptFile(code, language)
 	createDokerfile(language)
 	buildDockerImage(code)
 	time.Sleep(10 * time.Second)
@@ -207,6 +310,7 @@ func runJobOnK8s(language string) int {
 		language = "node"
 	}
 
+	//for other question must fix this map.
 	params := Parameters{
 		Language:   language,
 		ScriptFile: script,
@@ -304,96 +408,6 @@ func runJobOnK8s(language string) int {
 	return exit
 }
 
-func updateCode(code string, language string, tc model.TestCase) string {
-
-	var param string
-	switch language {
-	case "python":
-		for i := 0; i < int(tc.Length); i++ {
-			tN, isArr := typeName(tc.Input[i].Value)
-			if isArr { //change!!
-				param = fmt.Sprintf("%v\n\t%v = @(sys.argv[%v]) if len(sys.argv) > %v else None", param, tc.Input[i].Name, i+1, i+1) //tc.Input[i].Value
-			} else {
-				param = fmt.Sprintf("%v\n\t%v = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tc.Input[i].Name, tN, i+1, i+1) //tc.Input[i].Value
-			}
-		}
-		tN, isArr := typeName(tc.Output)
-		if isArr {
-			param = fmt.Sprintf("%v\n\toutput = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tN, tc.Length+1, tc.Length+1)
-		} else {
-			param = fmt.Sprintf("%v\n\toutput = %v(sys.argv[%v]) if len(sys.argv) > %v else None", param, tN, tc.Length+1, tc.Length+1)
-		}
-		code = fmt.Sprintf("import sys\n%v\nif __name__ == \"__main__\":%v\n\tif solution(%v) == output:\n\t\texit(0)\n\telse:\n\t\texit(1)", code, param, inputsStringNames(tc))
-	case "js":
-		for i := 0; i < int(tc.Length); i++ {
-			tN, isArr := typeName(tc.Input[i].Value)
-			tN = strings.ToUpper(string(tN[0])) + tN[1:]
-			if isArr { //change!!
-				//
-				if tN == "Int" || tN == "Float" {
-					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])", param, tc.Input[i].Name, tN, i+2) //,tc.Input[i].Value
-				} else {
-					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]", param, tc.Input[i].Name, i+2) //X
-				}
-			} else {
-				if tN == "Int" || tN == "Float" {
-					param = fmt.Sprintf("%v\nconst %v = parse%v(process.argv[%v])", param, tc.Input[i].Name, tN, i+2) //V
-				} else {
-					param = fmt.Sprintf("%v\nconst %v = process.argv[%v]", param, tc.Input[i].Name, i+2) //V
-				}
-			}
-		}
-		tN, isArr := typeName(tc.Output)
-		tN = strings.ToUpper(string(tN[0])) + tN[1:]
-		if isArr { //change!!
-			//
-			if tN == "Int" || tN == "Float" {
-				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
-			} else {
-				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
-			}
-		} else {
-			if tN == "Int" || tN == "Float" {
-				param = fmt.Sprintf("%v\nconst output = parse%v(process.argv[%v])", param, tN,tc.Length+2) //V
-			} else {
-				param = fmt.Sprintf("%v\nconst output = process.argv[%v]", param, tc.Length+2) //V
-			}
-		}
-		code = fmt.Sprintf("%v\n%v\nif (solution(%v) == output) {\n\tprocess.exit(0);\n} else {\n\tprocess.exit(1);\n}", code, param, inputsStringNames(tc))
-	}
-	return code
-}
-
-func inputsStringNames(ex model.TestCase) string {
-	params := ex.Input[0].Name
-
-	if ex.Length > 1 {
-		for i := 1; i < int(ex.Length); i++ {
-			params = fmt.Sprintf("%v,%v", params, ex.Input[i].Name)
-		}
-	}
-	return params
-}
-
-func createScriptFile(code string, language string) {
-	var filePath string
-	switch language {
-	case "python":
-		filePath = "../temp/script.py"
-	case "js":
-		filePath = "../temp/script.js"
-	}
-
-	// Write content to the file
-	err := ioutil.WriteFile(filePath, []byte(code), 0644)
-	if err != nil {
-		fmt.Println("Error writing to file:", err)
-		return
-	}
-
-	fmt.Println("Content successfully written to", filePath)
-
-}
 func createDokerfile(language string) {
 	filePath := "../temp/Dockerfile"
 	var code string
@@ -425,17 +439,16 @@ func buildDockerImage(code string) {
 	fmt.Println("Docker image build successfuly.")
 }
 
-func typeName(variable interface{}) (string, bool) {
+func typeName(variable interface{}) string {
 
 	t := fmt.Sprintf("%T", variable)
-	isArray := strings.Contains(t, "[")
 
 	if strings.Contains(t, "int") {
-		return "int", isArray
+		return "int"
 	}
 	if strings.Contains(t, "float") {
-		return "float", isArray
+		return "float"
 	}
-	return t, isArray
+	return t
 
 }
