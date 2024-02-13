@@ -31,9 +31,10 @@ var idCounterMutex sync.Mutex
 type Parameters struct {
 	Language   string
 	ScriptFile string
-	Param1     interface{}
-	Param2     interface{}
-	Output     interface{}
+	// Param1     interface{}
+	// Param2     interface{}
+	// Output     interface{}
+	Args []string
 }
 
 func init() {
@@ -63,14 +64,14 @@ func updatePythonCode(code string, testCase model.TestCase) {
 	var inputs []Input
 	for _, tc := range testCase.Input {
 		typ := typeName(tc.Value)
-		if typ != "int" && typ != "float" && typ != "bool"{
+		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = ""
 		}
 		inputs = append(inputs, Input{Name: tc.Name, Type: typ})
 	}
 
 	typ := typeName(testCase.Output)
-	if typ != "int" && typ != "float" && typ != "bool"{
+	if typ != "int" && typ != "float" && typ != "bool" {
 		typ = ""
 	}
 
@@ -103,7 +104,7 @@ func updateJsCode(code string, testCase model.TestCase) {
 	var inputs []Input
 	for _, tc := range testCase.Input {
 		typ := typeName(tc.Value)
-		if typ != "int" && typ != "float" && typ != "bool"{
+		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = ""
 		} else {
 			typ = strings.ToUpper(string(typ[0])) + typ[1:]
@@ -112,9 +113,12 @@ func updateJsCode(code string, testCase model.TestCase) {
 	}
 
 	typ := typeName(testCase.Output)
-	if typ != "int" && typ != "float" && typ != "bool"{
+	if typ == "bool"{
+		typ = "boolean"
+	} 
+	if typ != "int" && typ != "float" && typ != "boolean" {
 		typ = ""
-	}else{
+	} else {
 		typ = strings.ToUpper(string(typ[0])) + typ[1:]
 	}
 
@@ -141,8 +145,6 @@ func updateJsCode(code string, testCase model.TestCase) {
 		panic(err)
 	}
 }
-
-
 
 func generateID() string {
 	idCounterMutex.Lock()
@@ -273,21 +275,22 @@ func runTest(c *gin.Context) {
 		println(err.Error())
 	}
 	println("*******************************************************************************")
-	if language == "python"{
+	if language == "python" {
 		updatePythonCode(code, question.TestCases[0])
-	}else{
+	} else {
 		updateJsCode(code, question.TestCases[0])
 	}
-	//code = updateCode(code, language, question.TestCases[0])
-	//fmt.Println("code  =", code)
-	//createScriptFile(code, language)
 	createDokerfile(language)
 	buildDockerImage(code)
-	time.Sleep(10 * time.Second)
+	time.Sleep(8 * time.Second)
+	var isSuccecc bool //may be trigerr
+	for _,tc := range(question.TestCases){
+		isSuccecc = runJobOnK8s(language, tc)
+		if !isSuccecc{
+			break
+		}
+	}
 
-	isSuccecc := runJobOnK8s(language)
-
-	// Send the variables as a response
 	c.JSON(http.StatusOK, gin.H{
 		"code": isSuccecc,
 	})
@@ -299,7 +302,7 @@ func runTest(c *gin.Context) {
 //**********************************************************
 //**********************************************************
 
-func runJobOnK8s(language string) int {
+func runJobOnK8s(language string, testCase model.TestCase) bool {
 	var scriptMap = map[string]string{
 		"js":     "script.js",
 		"python": "script.py",
@@ -309,14 +312,17 @@ func runJobOnK8s(language string) int {
 	if language == "js" {
 		language = "node"
 	}
+	var args []string
 
-	//for other question must fix this map.
+	for _, arg := range testCase.Input {
+		args = append(args, fmt.Sprintf("%v",arg.Value))
+	}
+	args = append(args, fmt.Sprintf("%v",testCase.Output))
+
 	params := Parameters{
 		Language:   language,
 		ScriptFile: script,
-		Param1:     5,
-		Param2:     20,
-		Output:     25,
+		Args: args,
 	}
 
 	yamlTemplate, err := ioutil.ReadFile("../templates/job.yaml")
@@ -363,12 +369,12 @@ func runJobOnK8s(language string) int {
 		os.Exit(1)
 	}
 
-	exit := 0
+	exit := true
 	cmd = exec.Command("kubectl", "wait", "job/function-test-job", "--for=condition=complete", "--timeout=30s")
 	err = cmd.Run()
 	if err != nil {
 		fmt.Println("Error waiting for job to complete:", err)
-		exit = 1
+		exit = false
 	}
 	// time.Sleep(7 * time.Second)
 	// cmd = exec.Command("kubectl", "logs", "-l", "job-name=function-test-job")

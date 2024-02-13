@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: function-test-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: function-container
+        image: test:latest
+        imagePullPolicy: Never
+        command: ["node", "script.js"]
+        args: ["3","7","10",]
+      restartPolicy: Never

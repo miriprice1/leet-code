@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: function-test-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: function-container
+        image: test:latest
+        imagePullPolicy: Never
+        command: ["python","script.py"]
+        args: ["5", "8"]
+      restartPolicy: Never
+
+
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: function-test-job
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: function-container
+#         image: test:latest
+#         imagePullPolicy: Never
+#         command: ["python", "script.py"]
+#         env:
+#         - name: ARG1
+#           value: $(ARG1_VALUE)  # Use $(ARG1_VALUE) as placeholder for parameter value
+#         - name: ARG2
+#           value: $(ARG2_VALUE)  # Use $(ARG2_VALUE) as placeholder for parameter value
+#       restartPolicy: Never
+
