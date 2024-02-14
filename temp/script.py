@@ -1,17 +1,21 @@
 import sys
+import json
 
-def solution(number1,number2):
-    return number1 + number2
+def solution(arr):
+    return arr[0]
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
     
-    number1 = float(sys.argv[0 + 1]) if len(sys.argv) > 0 + 1 else None
     
-    number2 = float(sys.argv[1 + 1]) if len(sys.argv) > 1 + 1 else None
+    arr = json.loads(args[0])
     
-    output = float(sys.argv[3]) if len(sys.argv) > 3 else None
+    
+    
+    output = float(args[1])
+    
 
-    if solution(number1, number2) == output:
+    if solution(arr) == output:
         exit(0)
     else:
         exit(1)

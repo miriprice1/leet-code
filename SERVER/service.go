@@ -30,7 +30,7 @@ var idCounterMutex sync.Mutex
 type Parameters struct {
 	Language   string
 	ScriptFile string
-	Args []string
+	Args       []string
 }
 
 func init() {
@@ -43,42 +43,51 @@ func init() {
 	collection = client.Database("leet-code").Collection("questions")
 }
 
-type PythonTemplateData struct {
-	Inputs      []Input
-	Code        template.HTML
-	OutputIndex int
-	OutputType  string
+type TemplateData struct {
+	Inputs         []Input
+	Code           template.HTML
+	OutputIndex    int
+	OutputType     string
+	OutputIsArray  bool
+	OutputArrayLen int
 }
 
 type Input struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
+	IsArray  bool
+	ArrayLen int
 }
 
 func updatePythonCode(code string, testCase module.TestCase) {
 
 	var inputs []Input
+	var x int
 	for _, tc := range testCase.Input {
-		typ := typeName(tc.Value)
+		typ, isArray, len := typeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = ""
 		}
-		inputs = append(inputs, Input{Name: tc.Name, Type: typ})
+		x += len
+		inputs = append(inputs, Input{Name: tc.Name, Type: typ, IsArray: isArray, ArrayLen: len})
 	}
 
-	typ := typeName(testCase.Output)
+	typ, isArray, len := typeInfo(testCase.Output)
 	if typ != "int" && typ != "float" && typ != "bool" {
 		typ = ""
 	}
 
-	data := PythonTemplateData{
-		Inputs:      inputs,
-		Code:        template.HTML(code),
-		OutputIndex: int(testCase.Length) + 1,
-		OutputType:  typ,
+	data := TemplateData{
+		Inputs:         inputs,
+		Code:           template.HTML(code),
+		OutputIndex:    int(testCase.Length),
+		OutputType:     typ,
+		OutputIsArray:  isArray,
+		OutputArrayLen: len,
 	}
 
-	tmpl, err := template.ParseFiles("../templates/python_template.tmpl")
+	tmpl := template.New("try_arrays.tmpl").Funcs(template.FuncMap{"add": AddFunc})
+	tmpl, err := tmpl.ParseFiles("../templates/try_arrays.tmpl") //python_template.tmpl")
 	if err != nil {
 		panic(err)
 	}
@@ -94,35 +103,40 @@ func updatePythonCode(code string, testCase module.TestCase) {
 		panic(err)
 	}
 }
+func AddFunc(a, b int) int {
+	return a + b
+}
 
 func updateJsCode(code string, testCase module.TestCase) {
 
 	var inputs []Input
 	for _, tc := range testCase.Input {
-		typ := typeName(tc.Value)
+		typ, isArray, len := typeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = ""
 		} else {
 			typ = strings.ToUpper(string(typ[0])) + typ[1:]
 		}
-		inputs = append(inputs, Input{Name: tc.Name, Type: typ})
+		inputs = append(inputs, Input{Name: tc.Name, Type: typ, IsArray: isArray, ArrayLen: len})
 	}
 
-	typ := typeName(testCase.Output)
-	if typ == "bool"{
+	typ, isArray, len := typeInfo(testCase.Output)
+	if typ == "bool" {
 		typ = "boolean"
-	} 
+	}
 	if typ != "int" && typ != "float" && typ != "boolean" {
 		typ = ""
 	} else {
 		typ = strings.ToUpper(string(typ[0])) + typ[1:]
 	}
 
-	data := PythonTemplateData{
-		Inputs:      inputs,
-		Code:        template.HTML(code),
-		OutputIndex: int(testCase.Length),
-		OutputType:  typ,
+	data := TemplateData{
+		Inputs:         inputs,
+		Code:           template.HTML(code),
+		OutputIndex:    int(testCase.Length),
+		OutputType:     typ,
+		OutputIsArray:  isArray,
+		OutputArrayLen: len,
 	}
 
 	tmpl, err := template.ParseFiles("../templates/js_template.tmpl")
@@ -161,7 +175,7 @@ func GetAllQuestions(c *gin.Context) {
 
 	// Parse page number and page size from query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", fmt.Sprintf("%v",module.PageSize)))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", fmt.Sprintf("%v", module.PageSize)))
 
 	// Calculate skip value based on page number and page size
 	skip := (page - 1) * pageSize
@@ -279,9 +293,9 @@ func runTest(c *gin.Context) {
 	buildDockerImage(code)
 	time.Sleep(8 * time.Second)
 	var isSuccecc bool //may be trigerr
-	for _,tc := range(question.TestCases){
+	for _, tc := range question.TestCases {
 		isSuccecc = runJobOnK8s(language, tc)
-		if !isSuccecc{
+		if !isSuccecc {
 			break
 		}
 	}
@@ -310,14 +324,34 @@ func runJobOnK8s(language string, testCase module.TestCase) bool {
 	var args []string
 
 	for _, arg := range testCase.Input {
-		args = append(args, fmt.Sprintf("%v",arg.Value))
+		_, isArr, _ := typeInfo(arg.Value)
+		if isArr {
+			valueWithCommas := fmt.Sprintf("%v", arg.Value)
+			fmt.Println("Before replacement:", valueWithCommas)
+
+			// Replace spaces with commas
+			valueWithCommas = strings.ReplaceAll(valueWithCommas, " ", ",")
+			fmt.Println("After replacement:", valueWithCommas)
+
+			// Update testCase.Output with the modified string
+			arg.Value = valueWithCommas
+
+			fmt.Println("Updated output:", arg.Value)
+		}
+		args = append(args, fmt.Sprintf("%v", arg.Value))
 	}
-	args = append(args, fmt.Sprintf("%v",testCase.Output))
+	_, isArr, _ := typeInfo(testCase.Output)
+	if isArr {
+		valueWithCommas := fmt.Sprintf("%v", testCase.Output)
+		valueWithCommas = strings.ReplaceAll(valueWithCommas, " ", ",")
+		testCase.Output = valueWithCommas
+	}
+	args = append(args, fmt.Sprintf("%v", testCase.Output))
 
 	params := Parameters{
 		Language:   language,
 		ScriptFile: script,
-		Args: args,
+		Args:       args,
 	}
 	/*******************/
 
@@ -361,7 +395,7 @@ func runJobOnK8s(language string, testCase module.TestCase) bool {
 		os.Exit(1)
 	}
 
-	defer os.RemoveAll("../temp")
+	//defer os.RemoveAll("../temp")
 
 	return exit
 }
@@ -397,16 +431,23 @@ func buildDockerImage(code string) {
 	defer fmt.Println("Docker image build successfuly.")
 }
 
-func typeName(variable interface{}) string {
+func typeInfo(variable interface{}) (string, bool, int) {
 
 	t := fmt.Sprintf("%T", variable)
+	isArray := false
+	length := 0
 
+	if strings.Contains(t, "[") {
+		isArray = true
+		println(t)
+		length = len(variable.([]interface{}))
+	}
 	if strings.Contains(t, "int") {
-		return "int"
+		return "int", isArray, length
 	}
 	if strings.Contains(t, "float") {
-		return "float"
+		return "float", isArray, length
 	}
-	return t
+	return t, isArray, length
 
 }
