@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM node:14
 WORKDIR /app
-COPY script.py /app/script.py
-CMD ["python", "script.py"]
+COPY script.js .
+CMD ["node", "script.js"]

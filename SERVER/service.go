@@ -62,13 +62,11 @@ type Input struct {
 func updatePythonCode(code string, testCase module.TestCase) {
 
 	var inputs []Input
-	var x int
 	for _, tc := range testCase.Input {
 		typ, isArray, len := typeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = ""
 		}
-		x += len
 		inputs = append(inputs, Input{Name: tc.Name, Type: typ, IsArray: isArray, ArrayLen: len})
 	}
 
@@ -87,7 +85,7 @@ func updatePythonCode(code string, testCase module.TestCase) {
 	}
 
 	tmpl := template.New("try_arrays.tmpl").Funcs(template.FuncMap{"add": AddFunc})
-	tmpl, err := tmpl.ParseFiles("../templates/try_arrays.tmpl") //python_template.tmpl")
+	tmpl, err := tmpl.ParseFiles("../templates/python_template.tmpl")
 	if err != nil {
 		panic(err)
 	}

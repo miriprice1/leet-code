@@ -1,10 +1,19 @@
+const args = process.argv.slice(2);
+
 {{ .Code }}
 
 {{ range $index, $input := .Inputs }}
-const {{ $input.Name }} = {{ if not (eq $input.Type "") }}parse{{ end }}{{$input.Type}}(process.argv[{{ $index }} + 2])
+{{if $input.IsArray }}
+const {{ $input.Name }} = JSON.parse(args[{{ $index }}])
+{{ else }}
+const {{ $input.Name }} = {{ if not (eq $input.Type "") }}parse{{ end }}{{$input.Type}}(args[{{ $index }}])
 {{ end }}
-const output = {{ if ne .OutputType "" }}{{ if ne .OutputType "Boolean" }}parse{{ end }}{{ end }}{{ .OutputType }}(process.argv[{{ .OutputIndex }} + 2])
-
+{{ end }}
+{{if .OutputIsArray }}
+const output = JSON.parse(args[{{ .OutputIndex }}])
+{{ else }}
+const output = {{ if ne .OutputType "" }}{{ if ne .OutputType "Boolean" }}parse{{ end }}{{ end }}{{ .OutputType }}(args[{{ .OutputIndex }}])
+{{ end }}
 if (solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output){
     process.exit(0)
 }

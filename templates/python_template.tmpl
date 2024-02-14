@@ -1,12 +1,22 @@
 import sys
+import json
 
 {{ .Code }}
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
     {{ range $index, $input := .Inputs }}
-    {{ $input.Name }} = {{$input.Type}}(sys.argv[{{ $index }} + 1]) if len(sys.argv) > {{ $index }} + 1 else None
+    {{if $input.IsArray }}
+    {{ $input.Name }} = json.loads(args[{{ $index }}])
+    {{ else }}
+    {{ $input.Name }} = {{$input.Type}}(args[{{ $index }}])
     {{ end }}
-    output = {{ .OutputType }}(sys.argv[{{ .OutputIndex }}]) if len(sys.argv) > {{ .OutputIndex }} else None
+    {{ end }}
+    {{if .OutputIsArray }}
+    output = json.loads(args[{{ .OutputIndex }}])
+    {{ else }}
+    output = {{ .OutputType }}(args[{{ .OutputIndex }}])
+    {{ end }}
 
     if solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output:
         exit(0)
