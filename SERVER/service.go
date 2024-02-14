@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,9 +30,6 @@ var idCounterMutex sync.Mutex
 type Parameters struct {
 	Language   string
 	ScriptFile string
-	// Param1     interface{}
-	// Param2     interface{}
-	// Output     interface{}
 	Args []string
 }
 
@@ -59,7 +55,7 @@ type Input struct {
 	Type string
 }
 
-func updatePythonCode(code string, testCase model.TestCase) {
+func updatePythonCode(code string, testCase module.TestCase) {
 
 	var inputs []Input
 	for _, tc := range testCase.Input {
@@ -99,7 +95,7 @@ func updatePythonCode(code string, testCase model.TestCase) {
 	}
 }
 
-func updateJsCode(code string, testCase model.TestCase) {
+func updateJsCode(code string, testCase module.TestCase) {
 
 	var inputs []Input
 	for _, tc := range testCase.Input {
@@ -165,7 +161,7 @@ func GetAllQuestions(c *gin.Context) {
 
 	// Parse page number and page size from query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", fmt.Sprintf("%v",module.PageSize)))
 
 	// Calculate skip value based on page number and page size
 	skip := (page - 1) * pageSize
@@ -183,7 +179,7 @@ func GetAllQuestions(c *gin.Context) {
 	}
 	defer cursor.Close(context.Background())
 
-	var questions []model.Question
+	var questions []module.Question
 	//this is indices that all the data return,
 	if err := cursor.All(context.Background(), &questions); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -198,7 +194,7 @@ func GetAllQuestions(c *gin.Context) {
 func GetQuestionByID(c *gin.Context) {
 	id := c.Param("id")
 
-	var question model.Question
+	var question module.Question
 	err := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&question)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
@@ -210,7 +206,7 @@ func GetQuestionByID(c *gin.Context) {
 
 // AddQuestion adds a new question to the database.
 func AddQuestion(c *gin.Context) {
-	var question model.Question
+	var question module.Question
 	if err := c.ShouldBindJSON(&question); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -224,14 +220,14 @@ func AddQuestion(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, question)
+	c.JSON(http.StatusCreated, gin.H{"massage": "data inserted successfuly"})
 }
 
 // UpdateQuestion updates a question in the database by its ID.
 func UpdateQuestion(c *gin.Context) {
 	id := c.Param("id")
 
-	var updatedQuestion model.Question
+	var updatedQuestion module.Question
 	if err := c.ShouldBindJSON(&updatedQuestion); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -270,11 +266,10 @@ func runTest(c *gin.Context) {
 	questionJSON := c.PostForm("question")
 
 	// Parse the question JSON into a struct
-	var question model.Question
+	var question module.Question
 	if err := json.Unmarshal([]byte(questionJSON), &question); err != nil {
 		println(err.Error())
 	}
-	println("*******************************************************************************")
 	if language == "python" {
 		updatePythonCode(code, question.TestCases[0])
 	} else {
@@ -302,7 +297,7 @@ func runTest(c *gin.Context) {
 //**********************************************************
 //**********************************************************
 
-func runJobOnK8s(language string, testCase model.TestCase) bool {
+func runJobOnK8s(language string, testCase module.TestCase) bool {
 	var scriptMap = map[string]string{
 		"js":     "script.js",
 		"python": "script.py",
@@ -324,44 +319,25 @@ func runJobOnK8s(language string, testCase model.TestCase) bool {
 		ScriptFile: script,
 		Args: args,
 	}
+	/*******************/
 
-	yamlTemplate, err := ioutil.ReadFile("../templates/job.yaml")
+	tmpl, err := template.ParseFiles("../templates/job.tmpl")
 	if err != nil {
-		fmt.Println("Error reading template file:", err)
-		os.Exit(1)
+		panic(err)
 	}
 
-	tmpl, err := template.New("job").Parse(string(yamlTemplate))
+	outputFile, err := os.Create("../temp/job.yaml")
 	if err != nil {
-		fmt.Println("Error parsing template:", err)
-		os.Exit(1)
+		panic(err)
 	}
-	var filledYAMLFile bytes.Buffer
+	defer outputFile.Close()
 
-	err = tmpl.Execute(&filledYAMLFile, params)
+	err = tmpl.Execute(outputFile, params)
 	if err != nil {
-		fmt.Println("Error filling in template:", err)
-		os.Exit(1)
+		panic(err)
 	}
 
-	_err := ioutil.WriteFile("job.yaml", filledYAMLFile.Bytes(), 0644)
-	if _err != nil {
-		fmt.Println("Error creating temporary file:", err)
-		os.Exit(1)
-	}
-	// tmpfile, err := ioutil.TempFile("", "job-*.yaml")
-	// if err != nil {
-	// 	fmt.Println("Error creating temporary file:", err)
-	// 	os.Exit(1)
-	// }
-	// defer os.Remove(tmpfile.Name()) // Clean up temporary file
-
-	// if _, err := tmpfile.Write(filledYAMLFile.Bytes()); err != nil {
-	// 	fmt.Println("Error writing to temporary file:", err)
-	// 	os.Exit(1)
-	// }
-
-	cmd := exec.Command("kubectl", "apply", "-f", "job.yaml")
+	cmd := exec.Command("kubectl", "apply", "-f", "../temp/job.yaml")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -376,24 +352,6 @@ func runJobOnK8s(language string, testCase model.TestCase) bool {
 		fmt.Println("Error waiting for job to complete:", err)
 		exit = false
 	}
-	// time.Sleep(7 * time.Second)
-	// cmd = exec.Command("kubectl", "logs", "-l", "job-name=function-test-job")
-	// logs, err := cmd.Output()
-	// if err != nil {
-	// 	fmt.Println("Error getting logs:", err)
-	// 	os.Exit(1)
-	// }
-
-	// job, err := clientset.BatchV1().Jobs(namespace).Get(context.Background(), "your-job-name", metav1.GetOptions{})
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-
-	// if job.Status.Succeeded > 0 {
-	// 	fmt.Println("Job completed successfully")
-	// } else {
-	// 	fmt.Println("Job is still running or failed")
-	// }
 
 	cmd = exec.Command("kubectl", "delete", "job", "function-test-job")
 	cmd.Stdout = os.Stdout
@@ -403,14 +361,8 @@ func runJobOnK8s(language string, testCase model.TestCase) bool {
 		os.Exit(1)
 	}
 
-	// Check if the logs are empty
-	// if len(strings.TrimSpace(string(logs))) == 0 {
-	// 	fmt.Println("Logs are empty, job completed successfully.")
-	// 	return 0
-	// } else {
-	// 	fmt.Println("Logs are not empty, job may have failed.")
-	// 	return 1
-	// }
+	defer os.RemoveAll("../temp")
+
 	return exit
 }
 
@@ -430,7 +382,7 @@ func createDokerfile(language string) {
 		return
 	}
 
-	fmt.Println("Content successfully written to", filePath)
+	defer fmt.Println("Content successfully written to", filePath)
 }
 
 func buildDockerImage(code string) {
@@ -442,7 +394,7 @@ func buildDockerImage(code string) {
 		fmt.Println("Error building docker image", err)
 		return
 	}
-	fmt.Println("Docker image build successfuly.")
+	defer fmt.Println("Docker image build successfuly.")
 }
 
 func typeName(variable interface{}) string {
