@@ -16,6 +16,7 @@ func BuildAndRunJob(language string, testCase module.TestCase) bool {
 		"js":     "script.js",
 		"python": "script.py",
 	}
+	//Choose the correct commands for running
 	scriptName := scriptNameMap[language]
 
 	if language == "js" {

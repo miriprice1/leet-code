@@ -6,7 +6,7 @@ import (
 
 	"leet-code/share"
 )
-
+//question
 func ConvertUint8ToQuestion(body []uint8) *module.Question {
 	var questions module.Question
 	err := json.Unmarshal(body, &questions)
@@ -16,7 +16,7 @@ func ConvertUint8ToQuestion(body []uint8) *module.Question {
 	}
 	return &questions
 }
-
+//question!s!
 func ConvertUint8ToQuestions(body []uint8) *[]module.Question {
 	var questions []module.Question
 	err := json.Unmarshal(body, &questions)
@@ -27,6 +27,7 @@ func ConvertUint8ToQuestions(body []uint8) *[]module.Question {
 	return &questions
 }
 
+//return list of the input names
 func InputsStringNames(ex module.TestCase) string {
 	params := ex.Input[0].Name
 
@@ -38,7 +39,8 @@ func InputsStringNames(ex module.TestCase) string {
 	return params
 }
 
-func ParseInput(input string) interface{} {
+//parse the input value
+func ParseInputToInterface(input string) interface{} {
 	// Try to parse the input string as JSON
 	var value interface{}
 	err := json.Unmarshal([]byte(input), &value)
@@ -49,3 +51,4 @@ func ParseInput(input string) interface{} {
 	// If parsing as JSON fails, treat the input as a string
 	return input
 }
+

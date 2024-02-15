@@ -33,8 +33,6 @@ func TypeInfo(variable interface{}) (string, bool) {
 
 	t := fmt.Sprintf("%T", variable)
 	isArray := false
-	//delete this
-	fmt.Printf("********\n%v is type %T\n***********\n",variable,variable)
 
 	if strings.Contains(t, "["){
 		isArray = true
@@ -53,6 +51,7 @@ func TypeInfo(variable interface{}) (string, bool) {
 }
 
 func GenerateArgsSlice(testCase module.TestCase)[]string{
+	//All inputs
 	var args []string
 	for _, arg := range testCase.Input {
 		_, isArr := TypeInfo(arg.Value)
@@ -61,6 +60,7 @@ func GenerateArgsSlice(testCase module.TestCase)[]string{
 		}
 		args = append(args, fmt.Sprintf("%v", arg.Value))
 	}
+	//Output    
 	_, isArr := TypeInfo(testCase.Output)
 	if isArr {
 		testCase.Output = addCommas(testCase.Output)
@@ -68,9 +68,9 @@ func GenerateArgsSlice(testCase module.TestCase)[]string{
 	args = append(args, fmt.Sprintf("%v", testCase.Output))
 
 	return args
-
 }
 
+//Getting array without commas and adding them
 func addCommas(array interface{})string{
 	valueWithCommas := fmt.Sprintf("%v", array)
 	valueWithCommas = strings.ReplaceAll(valueWithCommas, " ", ",")

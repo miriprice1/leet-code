@@ -14,6 +14,7 @@ import (
 func CreatePythonCode(code string, testCase module.TestCase) {
 
 	var inputs []structures.TemplateInput
+	//Generate Inputs struct for sending to template	
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
@@ -37,6 +38,7 @@ func CreatePythonCode(code string, testCase module.TestCase) {
 		OutputIsArray:  isArray,
 	}
 
+	//Craete script file
 	tmplPath := "../templates/python_template.tmpl"
 	filePath := "../temp/script.py"
 	createFileFromTemplate(tmplPath, filePath,data)
@@ -55,6 +57,7 @@ func createFileFromTemplate(tmplPath string, outputPath string, data structures.
 	}
 	defer outputFile.Close()
 
+	//Build the file according to the parameters
 	err = tmpl.Execute(outputFile, data)
 	if err != nil {
 		panic(err)
@@ -64,6 +67,7 @@ func createFileFromTemplate(tmplPath string, outputPath string, data structures.
 func CreateJsCode(code string, testCase module.TestCase) {
 
 	var inputs []structures.TemplateInput
+	//Generate Inputs struct for sending to template	
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
 		if typ != "int" && typ != "float"{//} && typ != "bool" {
@@ -92,6 +96,7 @@ func CreateJsCode(code string, testCase module.TestCase) {
 		OutputIsArray:  isArray,
 	}
 
+	//Create script file
 	tmplPath := "../templates/js_template.tmpl"
 	filePath := "../temp/script.js"
 	createFileFromTemplate(tmplPath, filePath,data)
@@ -101,6 +106,7 @@ func CreateJsCode(code string, testCase module.TestCase) {
 func CreateDokerfile(language string) {
 	filePath := "../temp/Dockerfile"
 	var code string
+	//Define other dockerfile for each language
 	switch language {
 	case "python":
 		code = "FROM python:3.9\nWORKDIR /app\nCOPY script.py /app/script.py\nCMD [\"python\", \"script.py\"]"
@@ -129,6 +135,7 @@ func CreateYamlFile(params structures.YamlParameters){
 	}
 	defer outputFile.Close()
 
+	//Build the file according to the parameters
 	err = tmpl.Execute(outputFile, params)
 	if err != nil {
 		panic(err)

@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"leet-code/client/display"
 	"log"
 	"net/http"
 	"net/url"
 
+	"leet-code/client/display"
 	"leet-code/client/helper"
 	"leet-code/share"
 
@@ -19,7 +19,7 @@ import (
 func EditQ() {
 	pageNumber := 1
 	id := "-1"
-	for id == "-1" {
+	for id == "-1" {//Pagination
 		resData := httpGetRequest(fmt.Sprintf("http://localhost:8080/questions?page=%v",pageNumber))
 		questions := *helper.ConvertUint8ToQuestions(resData)
 		pageNumber++
@@ -31,6 +31,8 @@ func EditQ() {
 	selectedData := httpGetRequest(myurl)
 	selectedQuestion := *helper.ConvertUint8ToQuestion(selectedData)
 
+	//display the question to the user as json :(
+	//I will change it 😔
 	jsonData, err := json.Marshal(selectedQuestion)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -49,30 +51,12 @@ func EditQ() {
 
 	err = form.Run()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error:", err)
 	}
 
 	url := fmt.Sprintf("http://localhost:8080/questions/%s", id)
 	buffer := bytes.NewBufferString(obj)
-	req, err := http.NewRequest("PUT", url, buffer)
-	if err != nil {
-		fmt.Println("Error creating HTTP request:", err)
-	}
-
-	// Send the request using the default client
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Println("Error sending HTTP request:", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-	}
-
-	fmt.Println("Response from server:", string(body))
-
+	httpRequest("PUT",url,buffer)
 }
 
 func DeleteQ() {
@@ -86,8 +70,12 @@ func DeleteQ() {
 		id = display.ChooseQuestion(questions)
 	}
 	url := fmt.Sprintf("http://localhost:8080/questions/%s", id)
+	httpRequest("DELETE",url,bytes.NewBuffer(nil))
 
-	req, err := http.NewRequest("DELETE", url, nil)
+}
+//Doing http requests with just print response
+func httpRequest(methodType string , url string , buffer *bytes.Buffer){
+	req, err := http.NewRequest(methodType, url, buffer)
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
 	}
@@ -105,7 +93,6 @@ func DeleteQ() {
 	}
 
 	fmt.Println("Response from server:", string(body))
-
 }
 
 func AddQ() {
@@ -132,26 +119,14 @@ func AddQ() {
 
 	q.TestCases = CaptureTestCases()
 
+	//Convert to json for safe forwarding
 	jsonData, err := json.Marshal(q)
 	if err != nil {
 		fmt.Println("Error marshaling question:", err)
 		return
 	}
-
-	resp, err := http.Post("http://localhost:8080/questions", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		fmt.Println("Error sending POST request:", err.Error())
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err.Error())
-		return
-	}
-
-	fmt.Println("Response from server:", string(body))
+	url := "http://localhost:8080/questions"
+	httpRequest("POST",url,bytes.NewBuffer(jsonData))
 
 }
 
@@ -180,7 +155,7 @@ func CaptureTestCases()[]module.TestCase{
 			}
 			fmt.Println("Enter input value:")
 			fmt.Scan(&val)
-			param.Value = helper.ParseInput(val)
+			param.Value = helper.ParseInputToInterface(val)
 
 			// To verify that all inputs name are the same
 			if !isFirstTime{
@@ -195,10 +170,11 @@ func CaptureTestCases()[]module.TestCase{
 		var val string
 		println("Enter output:")
 		fmt.Scan(&val)
-		tc.Output = helper.ParseInput(val)
+		tc.Output = helper.ParseInputToInterface(val)
 
 		testCases = append(testCases, tc)
 
+		//Option to add more test case
 		form := huh.NewForm(
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -215,12 +191,12 @@ func CaptureTestCases()[]module.TestCase{
 		isFirstTime = false
 	}
 	return testCases
-
 }
 
 func SolveQ() {
 	pageNumber := 1
 	id := "-1"
+	//Pagination
 	for id == "-1" {
 		resData := httpGetRequest(fmt.Sprintf("http://localhost:8080/questions?page=%v",pageNumber))
 		questions := *helper.ConvertUint8ToQuestions(resData)
@@ -244,19 +220,18 @@ func SolveQ() {
 	data.Set("language", language)
 	data.Set("question", string(selectedData))
 
-	// Send HTTP POST request to the server
+	//Send Post request
+	//The reason is defined separately (and not in the HttpRequest function) It is because of the type of the request body
 	resp, err := http.PostForm("http://localhost:8080/runtest", data)
 	if err != nil {
-		println("Error sending POST request:", err.Error())
-		return
+		fmt.Println("Error creating HTTP request:", err)
 	}
+
 	defer resp.Body.Close()
 
-	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		println("Error reading response body:", err.Error())
-		return
+		fmt.Println("Error reading response body:", err)
 	}
 
 	fmt.Println("Response from server:", string(body))

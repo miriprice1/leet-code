@@ -25,6 +25,7 @@ func main() {
     router.Run(":8080")
 }
 
+//Connect to DB
 func init() {
 	clientOptions := options.Client().ApplyURI("mongodb://mongo:mongo@localhost:27017/questions?authSource=admin&authMechanism=SCRAM-SHA-256")
 	structures.Client, _ = mongo.Connect(context.Background(), clientOptions)

@@ -60,6 +60,7 @@ func ChooseQuestion(questions []module.Question) string {
 			Value: q.ID,
 		})
 	}
+			
 	//Pagination
 	if len(options) == module.PageSize {
 		options = append(options, huh.Option[string]{
@@ -89,13 +90,13 @@ func ChooseQuestion(questions []module.Question) string {
 func DisplayAnswerInterface(language string, testCase module.TestCase) string {
 
 	var code string
-	params := helper.InputsStringNames(testCase)
+	funcParams := helper.InputsStringNames(testCase)
 
 	switch language {
 	case "python":
-		code = fmt.Sprintf("def solution(%v):\n\t", params)
+		code = fmt.Sprintf("def solution(%v):\n\t", funcParams)
 	case "js":
-		code = fmt.Sprintf("function solution(%v){\n\t\n};", params)
+		code = fmt.Sprintf("function solution(%v){\n\t\n};", funcParams)
 	}
 
 	form := huh.NewForm(
