@@ -3,17 +3,41 @@ const args = process.argv.slice(2);
 {{ .Code }}
 
 {{ range $index, $input := .Inputs }}
-{{if $input.IsArray }}
+{{ if eq $input.Type "string" }}
+{{ if $input.IsArray }}
+//case of array string
+let tmp_arr = args[{{ $index }}].slice(1 ,-1);
+let {{ $input.Name }} = tmp_arr.split(',').map(elem => elem.trim());
+{{ else }}
+//case of string
+let {{ $input.Name }} = args[{{ $index }}]
+{{ end }}
+{{ else }}
+//rest of cases
 const {{ $input.Name }} = JSON.parse(args[{{ $index }}])
+{{ end }}
+{{ end }}
+
+
+
+
+{{ if eq .OutputType "string" }}
+{{ if .OutputIsArray }}
+//case of array string
+let tmp_arr = args[{{ .OutputIndex }}].slice(1 ,-1);
+let output = tmp_arr.split(',').map(elem => elem.trim());
 {{ else }}
-const {{ $input.Name }} = {{ if not (eq $input.Type "") }}parse{{ end }}{{$input.Type}}(args[{{ $index }}])
+//case of string
+let output = args[{{ .OutputIndex }}]
 {{ end }}
-{{ end }}
-{{if .OutputIsArray }}
+{{ else }}
+//rest of cases
 const output = JSON.parse(args[{{ .OutputIndex }}])
-{{ else }}
-const output = {{ if ne .OutputType "" }}{{ if ne .OutputType "Boolean" }}parse{{ end }}{{ end }}{{ .OutputType }}(args[{{ .OutputIndex }}])
 {{ end }}
+
+
+
+
 if (solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output){
     process.exit(0)
 }

@@ -14,14 +14,13 @@ func main() {
 
     router := gin.Default()
 
-    // Set up routes using functions from the 'service' package
     router.GET("/questions", httphandler.GetAllQuestions)
     router.GET("/questions/:id", httphandler.GetQuestionByID)
     router.POST("/questions", httphandler.AddQuestion)
     router.PUT("/questions/:id", httphandler.UpdateQuestion)
     router.DELETE("/questions/:id", httphandler.DeleteQuestion)
 
-    router.POST("/runtest", httphandler.RunTest )
+    router.POST("/runtest", httphandler.RunTest)
 
     router.Run(":8080")
 }

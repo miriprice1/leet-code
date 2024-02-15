@@ -13,18 +13,20 @@ import (
 
 func CreatePythonCode(code string, testCase module.TestCase) {
 
-	var inputs []structures.Input
+	var inputs []structures.TemplateInput
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
-			typ = ""
+			typ = "string"
 		}
-		inputs = append(inputs, structures.Input{Name: tc.Name, Type: typ, IsArray: isArray})
+		println("is array = ",isArray)
+		println("type = ",typ)
+		inputs = append(inputs, structures.TemplateInput{Name: tc.Name, Type: typ, IsArray: isArray})
 	}
 
 	typ, isArray := helper.TypeInfo(testCase.Output)
 	if typ != "int" && typ != "float" && typ != "bool" {
-		typ = ""
+		typ = "string"
 	}
 
 	data := structures.TemplateData{
@@ -39,21 +41,6 @@ func CreatePythonCode(code string, testCase module.TestCase) {
 	filePath := "../temp/script.py"
 	createFileFromTemplate(tmplPath, filePath,data)
 
-	// tmpl, err := template.ParseFiles()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// outputFile, err := os.Create()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer outputFile.Close()
-
-	// err = tmpl.Execute(outputFile, data)
-	// if err != nil {
-	// 	panic(err)
-	// }
 }
 
 func createFileFromTemplate(tmplPath string, outputPath string, data structures.TemplateData){
@@ -76,23 +63,23 @@ func createFileFromTemplate(tmplPath string, outputPath string, data structures.
 
 func CreateJsCode(code string, testCase module.TestCase) {
 
-	var inputs []structures.Input
+	var inputs []structures.TemplateInput
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
-		if typ != "int" && typ != "float" && typ != "bool" {
-			typ = ""
+		if typ != "int" && typ != "float"{//} && typ != "bool" {
+			typ = "string"
 		} else {
 			typ = strings.ToUpper(string(typ[0])) + typ[1:]
 		}
-		inputs = append(inputs, structures.Input{Name: tc.Name, Type: typ, IsArray: isArray})
+		inputs = append(inputs, structures.TemplateInput{Name: tc.Name, Type: typ, IsArray: isArray})
 	}
 
 	typ, isArray := helper.TypeInfo(testCase.Output)
-	if typ == "bool" {
-		typ = "boolean"
-	}
-	if typ != "int" && typ != "float" && typ != "boolean" {
-		typ = ""
+	// if typ == "bool" {
+	// 	typ = "boolean"
+	// }
+	if typ != "int" && typ != "float"{// && typ != "boolean" {
+		typ = "string"
 	} else {
 		typ = strings.ToUpper(string(typ[0])) + typ[1:]
 	}
@@ -109,21 +96,6 @@ func CreateJsCode(code string, testCase module.TestCase) {
 	filePath := "../temp/script.js"
 	createFileFromTemplate(tmplPath, filePath,data)
 
-	// tmpl, err := template.ParseFiles("../templates/js_template.tmpl")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// outputFile, err := os.Create("../temp/script.js")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer outputFile.Close()
-
-	// err = tmpl.Execute(outputFile, data)
-	// if err != nil {
-	// 	panic(err)
-	// }
 }
 
 func CreateDokerfile(language string) {

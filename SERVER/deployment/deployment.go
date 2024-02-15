@@ -53,6 +53,7 @@ func runJobOnK8s()bool{
 	if err != nil {
 		fmt.Println("Error waiting for job to complete:", err)
 		exit = false
+		
 	}
 
 	cmd = exec.Command("kubectl", "delete", "job", "function-test-job")

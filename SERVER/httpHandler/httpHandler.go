@@ -145,12 +145,13 @@ func RunTest(c *gin.Context) {
 	var isSuccecc bool
 	for _, tc := range question.TestCases {
 		isSuccecc = deployment.BuildAndRunJob(language, tc)
+		// To finish in the first that failed
 		if !isSuccecc {
 			break
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": isSuccecc,
+		"Is success? ": isSuccecc,
 	})
 }

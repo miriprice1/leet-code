@@ -7,14 +7,14 @@ import (
 )
 
 type TemplateData struct {
-	Inputs         []Input
+	Inputs         []TemplateInput
 	Code           template.HTML
 	OutputIndex    int
 	OutputType     string
 	OutputIsArray  bool
 }
 
-type Input struct {
+type TemplateInput struct {
 	Name     string
 	Type     string
 	IsArray  bool

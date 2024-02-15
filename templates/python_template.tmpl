@@ -6,19 +6,35 @@ import json
 if __name__ == "__main__":
     args = sys.argv[1:]
     {{ range $index, $input := .Inputs }}
-    {{if $input.IsArray }}
+    {{ if eq $input.Type "string" }}
+    {{ if $input.IsArray }}
+    #case of array string
+    tmp_arr = args[{{ $index }}][{{ $index }}+1:-1]
+    {{ $input.Name }} = [elem.strip() for elem in tmp_arr.split(',')]
+    {{ else }}
+    #case of string
+    {{ $input.Name }} = args[{{ $index }}]
+    {{ end }}
+    {{ else }}
+    #rest of cases
     {{ $input.Name }} = json.loads(args[{{ $index }}])
+    {{ end }}
+    {{ end }}
+
+    {{ if eq .OutputType "string" }}
+    {{ if .OutputIsArray }}
+    tmp_arr = args[{{ .OutputIndex }}][{{ .OutputIndex }}+1:-1]
+    output = [elem.strip() for elem in tmp_arr.split(',')]
     {{ else }}
-    {{ $input.Name }} = {{$input.Type}}(args[{{ $index }}])
+    output = args[{{ .OutputIndex }}]
     {{ end }}
-    {{ end }}
-    {{if .OutputIsArray }}
+    {{ else }}
     output = json.loads(args[{{ .OutputIndex }}])
-    {{ else }}
-    output = {{ .OutputType }}(args[{{ .OutputIndex }}])
     {{ end }}
 
     if solution({{ range $index, $input := .Inputs }}{{ if ne $index 0 }}, {{ end }}{{ $input.Name }}{{ end }}) == output:
         exit(0)
     else:
         exit(1)
+
+

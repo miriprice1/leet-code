@@ -130,57 +130,7 @@ func AddQ() {
 		log.Fatal(err)
 	}
 
-	var testCases []module.TestCase
-	var len uint
-	println("enter intputs length:")
-	fmt.Scan(&len)
-	addAnother := true
-	for addAnother {
-		var tc module.TestCase
-
-		var params []module.Parameter
-
-		tc.Length = len
-
-		for i := 0; i < int(len); i++ {
-			var param module.Parameter
-			var val string
-			fmt.Println("Enter input name:")
-			fmt.Scan(&param.Name)
-
-			fmt.Println("Enter input value:")
-			fmt.Scan(&val)
-			param.Value = helper.ParseInput(val)
-
-			params = append(params, param)
-		}
-
-		tc.Input = params
-
-		var val string
-		println("Enter output:")
-		fmt.Scan(&val)
-		tc.Output = helper.ParseInput(val)
-
-		testCases = append(testCases, tc)
-
-		form = huh.NewForm(
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Are you want to add test case?").
-					Affirmative("Yes!").
-					Negative("No.").
-					Value(&addAnother),
-			),
-		)
-		err := form.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	}
-
-	q.TestCases = testCases
+	q.TestCases = CaptureTestCases()
 
 	jsonData, err := json.Marshal(q)
 	if err != nil {
@@ -202,6 +152,69 @@ func AddQ() {
 	}
 
 	fmt.Println("Response from server:", string(body))
+
+}
+
+func CaptureTestCases()[]module.TestCase{
+	var testCases []module.TestCase
+	var len uint
+	println("enter intputs length:")
+	fmt.Scan(&len)
+	addAnother := true
+	isFirstTime := true
+	for addAnother {
+		var tc module.TestCase
+
+		var params []module.Parameter
+
+		
+
+		tc.Length = len
+
+		for i := 0; i < int(len); i++ {
+			var param module.Parameter
+			var val string
+			if isFirstTime{
+				fmt.Println("Enter input name:")
+				fmt.Scan(&param.Name)
+			}
+			fmt.Println("Enter input value:")
+			fmt.Scan(&val)
+			param.Value = helper.ParseInput(val)
+
+			// To verify that all inputs name are the same
+			if !isFirstTime{
+				param.Name = testCases[0].Input[i].Name
+			}
+
+			params = append(params, param)
+		}
+
+		tc.Input = params
+
+		var val string
+		println("Enter output:")
+		fmt.Scan(&val)
+		tc.Output = helper.ParseInput(val)
+
+		testCases = append(testCases, tc)
+
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewConfirm().
+					Title("Are you want to add test case?").
+					Affirmative("Yes!").
+					Negative("No.").
+					Value(&addAnother),
+			),
+		)
+		err := form.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+		isFirstTime = false
+	}
+	return testCases
 
 }
 

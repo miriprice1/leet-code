@@ -33,9 +33,14 @@ func TypeInfo(variable interface{}) (string, bool) {
 
 	t := fmt.Sprintf("%T", variable)
 	isArray := false
+	//delete this
+	fmt.Printf("********\n%v is type %T\n***********\n",variable,variable)
 
-	if strings.Contains(t, "[") {
+	if strings.Contains(t, "["){
 		isArray = true
+	}
+	if strings.Contains(t, "interface") {
+		return "interface", isArray
 	}
 	if strings.Contains(t, "int") {
 		return "int", isArray
