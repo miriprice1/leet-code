@@ -10,5 +10,5 @@ spec:
         image: test:latest
         imagePullPolicy: Never
         command: ["node", "script.js"]
-        args: ["3","7","10",]
+        args: ["[gtt,oooo,itai]","itai",]
       restartPolicy: Never

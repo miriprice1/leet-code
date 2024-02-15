@@ -1,22 +1,33 @@
 const args = process.argv.slice(2);
 
-function solution(number1,number2){
-  return number1 + number2  
+function solution(arr){
+  return arr[arr.length-1]  
 };
 
 
 
-const number1 = parseFloat(args[0])
+
+//case of array string or boolean
+let tmp_arr = args[0].slice(1 ,-1);
+let arr = tmp_arr.split(',').map(elem => elem.trim());
 
 
 
-const number2 = parseFloat(args[1])
 
 
 
-const output = parseFloat(args[2])
 
-if (solution(number1, number2) == output){
+
+
+//case of string
+let output = args[1]
+
+
+
+
+
+
+if (solution(arr) == output){
     process.exit(0)
 }
 else{
