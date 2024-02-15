@@ -10,7 +10,7 @@ Before activation, you must perform the following steps:
     ```
 
 2. **Run the Server:**
-    for windows:
+   for windows:
    ```bash
     .\start-server.exe
     ```
@@ -20,7 +20,7 @@ Before activation, you must perform the following steps:
     ```
 
 4. **Run the App:**
-    for windows:
+   for windows:
    ```bash
     .\come-on-leet-code.exe
     ```
