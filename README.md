@@ -4,17 +4,27 @@
 
 Before activation, you must perform the following steps:
 
-1. **Run Docker Desktop on your local machine:**
+1. **Run Docker and k8s on your local machine:**
     ```bash
-    cd .DB/ && docker-compose up -d
+    docker-compose up -d
     ```
 
 2. **Run the Server:**
-    ```bash
-    cd ../SERVER/ && go run .
+    for windows:
+   ```bash
+    .\start-server.exe
+    ```
+    for linux / macOS:
+   ```bash
+    ./start-server
     ```
 
-3. **Run the App:**
-    ```bash
-    cd ../UI/ && go run .
+4. **Run the App:**
+    for windows:
+   ```bash
+    .\come-on-leet-code.exe
+    ```
+    for linux / macOS:
+   ```bash
+    ./come-on-leet-code
     ```
