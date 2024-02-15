@@ -10,6 +10,6 @@ services:
       MONGO_INITDB_DATABASE: questions
     ports:
       - "27017:27017"
-    volumes:
-      - "C:/mongo_data:/data/db"
+    volumes: 
+      - "C:/mongo_data:/data/db" 
     command: ["--bind_ip_all"]

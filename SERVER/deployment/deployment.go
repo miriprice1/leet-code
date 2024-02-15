@@ -5,7 +5,7 @@ import (
 	"leet-code/server/files"
 	"leet-code/server/helper"
 	"leet-code/server/structures"
-	"leet-code/share"
+	module "leet-code/share"
 	"os"
 	"os/exec"
 )
@@ -38,9 +38,9 @@ func BuildAndRunJob(language string, testCase module.TestCase) bool {
 	return runningResult
 }
 
-func runJobOnK8s()bool{
+func runJobOnK8s() bool {
 
-	cmd := exec.Command("kubectl", "apply", "-f", "../temp/job.yaml")
+	cmd := exec.Command("kubectl", "apply", "-f", "./temp/job.yaml")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -54,7 +54,7 @@ func runJobOnK8s()bool{
 	if err != nil {
 		fmt.Println("Error waiting for job to complete:", err)
 		exit = false
-		
+
 	}
 
 	cmd = exec.Command("kubectl", "delete", "job", "function-test-job")
@@ -68,7 +68,7 @@ func runJobOnK8s()bool{
 }
 
 func BuildDockerImage(code string) {
-	cmd := exec.Command("sh", "-c", "cd ../temp && docker build -t test .")
+	cmd := exec.Command("sh", "-c", "cd ./temp && docker build -t test .")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Start()

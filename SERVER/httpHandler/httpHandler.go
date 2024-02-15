@@ -12,14 +12,12 @@ import (
 	"leet-code/server/files"
 	"leet-code/server/helper"
 	"leet-code/server/structures"
-	"leet-code/share"
+	module "leet-code/share"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-
 
 func GetAllQuestions(c *gin.Context) {
 
@@ -134,12 +132,13 @@ func RunTest(c *gin.Context) {
 	// Parse the question JSON into a struct
 	var question module.Question
 	if err := json.Unmarshal([]byte(questionJSON), &question); err != nil {
-		println("Error:",err.Error())
+		println("Error:", err.Error())
 	}
+
 	//Create temporary folder
-	os.Mkdir("../temp", 0755)
+	os.Mkdir("./temp", 0755)
 	//Remove the temporary folder
-	defer os.RemoveAll("../temp")
+	defer os.RemoveAll("./temp")
 
 	//Generate scriptFile
 	if language == "python" {
@@ -164,5 +163,5 @@ func RunTest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Is success? ": isSuccecc,
 	})
-  
+
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"leet-code/server/structures"
-	"leet-code/share"
 	"leet-code/server/helper"
+	"leet-code/server/structures"
+	module "leet-code/share"
 	"os"
 	"strings"
 )
@@ -14,14 +14,12 @@ import (
 func CreatePythonCode(code string, testCase module.TestCase) {
 
 	var inputs []structures.TemplateInput
-	//Generate Inputs struct for sending to template	
+	//Generate Inputs struct for sending to template
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
 		if typ != "int" && typ != "float" && typ != "bool" {
 			typ = "string"
 		}
-		println("is array = ",isArray)
-		println("type = ",typ)
 		inputs = append(inputs, structures.TemplateInput{Name: tc.Name, Type: typ, IsArray: isArray})
 	}
 
@@ -31,21 +29,23 @@ func CreatePythonCode(code string, testCase module.TestCase) {
 	}
 
 	data := structures.TemplateData{
-		Inputs:         inputs,
-		Code:           template.HTML(code),
-		OutputIndex:    int(testCase.Length),
-		OutputType:     typ,
-		OutputIsArray:  isArray,
+		Inputs:        inputs,
+		Code:          template.HTML(code),
+		OutputIndex:   int(testCase.Length),
+		OutputType:    typ,
+		OutputIsArray: isArray,
 	}
 
 	//Craete script file
-	tmplPath := "../templates/python_template.tmpl"
-	filePath := "../temp/script.py"
-	createFileFromTemplate(tmplPath, filePath,data)
+	println("*********************************")
+	println(os.Getwd())
+	tmplPath := "./templates/python_template.tmpl"
+	filePath := "./temp/script.py"
+	createFileFromTemplate(tmplPath, filePath, data)
 
 }
 
-func createFileFromTemplate(tmplPath string, outputPath string, data structures.TemplateData){
+func createFileFromTemplate(tmplPath string, outputPath string, data structures.TemplateData) {
 	tmpl, err := template.ParseFiles(tmplPath)
 	if err != nil {
 		panic(err)
@@ -67,10 +67,10 @@ func createFileFromTemplate(tmplPath string, outputPath string, data structures.
 func CreateJsCode(code string, testCase module.TestCase) {
 
 	var inputs []structures.TemplateInput
-	//Generate Inputs struct for sending to template	
+	//Generate Inputs struct for sending to template
 	for _, tc := range testCase.Input {
 		typ, isArray := helper.TypeInfo(tc.Value)
-		if typ != "int" && typ != "float"{//} && typ != "bool" {
+		if typ != "int" && typ != "float" { //} && typ != "bool" {
 			typ = "string"
 		} else {
 			typ = strings.ToUpper(string(typ[0])) + typ[1:]
@@ -82,29 +82,29 @@ func CreateJsCode(code string, testCase module.TestCase) {
 	// if typ == "bool" {
 	// 	typ = "boolean"
 	// }
-	if typ != "int" && typ != "float"{// && typ != "boolean" {
+	if typ != "int" && typ != "float" { // && typ != "boolean" {
 		typ = "string"
 	} else {
 		typ = strings.ToUpper(string(typ[0])) + typ[1:]
 	}
 
 	data := structures.TemplateData{
-		Inputs:         inputs,
-		Code:           template.HTML(code),
-		OutputIndex:    int(testCase.Length),
-		OutputType:     typ,
-		OutputIsArray:  isArray,
+		Inputs:        inputs,
+		Code:          template.HTML(code),
+		OutputIndex:   int(testCase.Length),
+		OutputType:    typ,
+		OutputIsArray: isArray,
 	}
 
 	//Create script file
-	tmplPath := "../templates/js_template.tmpl"
-	filePath := "../temp/script.js"
-	createFileFromTemplate(tmplPath, filePath,data)
+	tmplPath := "./templates/js_template.tmpl"
+	filePath := "./temp/script.js"
+	createFileFromTemplate(tmplPath, filePath, data)
 
 }
 
 func CreateDokerfile(language string) {
-	filePath := "../temp/Dockerfile"
+	filePath := "./temp/Dockerfile"
 	var code string
 	//Define other dockerfile for each language
 	switch language {
@@ -123,13 +123,13 @@ func CreateDokerfile(language string) {
 	defer fmt.Println("Content successfully written to", filePath)
 }
 
-func CreateYamlFile(params structures.YamlParameters){
-	tmpl, err := template.ParseFiles("../templates/job.tmpl")
+func CreateYamlFile(params structures.YamlParameters) {
+	tmpl, err := template.ParseFiles("./templates/job.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	outputFile, err := os.Create("../temp/job.yaml")
+	outputFile, err := os.Create("./temp/job.yaml")
 	if err != nil {
 		panic(err)
 	}
