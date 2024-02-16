@@ -13,6 +13,7 @@ Note: Before you start, go to the docker-compose.yml file and change the volume 
 2. **Run Docker-Compose:**
    Open the terminal and navigate to the root folder of the project, then run:
    ```bash
+   cd leet-code
    docker-compose up -d
    ```
 
