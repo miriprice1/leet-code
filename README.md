@@ -14,7 +14,7 @@ Note: Before you start, go to the docker-compose.yml file and change the volume 
    Open the terminal and navigate to the root folder of the project, then run:
    ```bash
    docker-compose up -d
-  ```
+   ```
 
 3. **Run the Server:**
    For windows:
