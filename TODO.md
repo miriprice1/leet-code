@@ -20,12 +20,6 @@ This project is a dummy project for the leet-code.com site, allowing users to so
 
    *Array of Boolean Type in JS:* Currently, it is not possible to send an array of boolean type in JavaScript. This issue needs to be addressed promptly.
 
-**Note:**
-
-   To prevent unnecessary navigation and switching between folders, the runtime files are located in the external folder of the project. 
-   The project's navigation (reading/creating files, etc.) has been adapted accordingly. 
-   As a result, running the code only through the executable files is recommended to avoid issues with VSCode or other IDEs.
-
 **Personal Note:**
 
    These past two weeks have been quite challenging for me as I've dedicated long hours to this project. 
