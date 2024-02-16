@@ -40,7 +40,7 @@ func BuildAndRunJob(language string, testCase module.TestCase) bool {
 
 func runJobOnK8s() bool {
 
-	cmd := exec.Command("kubectl", "apply", "-f", "./temp/job.yaml")
+	cmd := exec.Command("kubectl", "apply", "-f", "../temp/job.yaml")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -49,7 +49,7 @@ func runJobOnK8s() bool {
 	}
 
 	exit := true
-	cmd = exec.Command("kubectl", "wait", "job/function-test-job", "--for=condition=complete", "--timeout=30s")
+	cmd = exec.Command("kubectl", "wait", "job/function-test-job", "--for=condition=complete", "--timeout=20s")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error waiting for job to complete:", err)

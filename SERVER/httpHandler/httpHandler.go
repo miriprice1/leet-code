@@ -136,9 +136,9 @@ func RunTest(c *gin.Context) {
 	}
 
 	//Create temporary folder
-	os.Mkdir("./temp", 0755)
+	os.Mkdir("../temp", 0755)
 	//Remove the temporary folder
-	defer os.RemoveAll("./temp")
+	defer os.RemoveAll("../temp")
 
 	//Generate scriptFile
 	if language == "python" {

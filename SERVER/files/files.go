@@ -37,10 +37,8 @@ func CreatePythonCode(code string, testCase module.TestCase) {
 	}
 
 	//Craete script file
-	println("*********************************")
-	println(os.Getwd())
-	tmplPath := "./templates/python_template.tmpl"
-	filePath := "./temp/script.py"
+	tmplPath := "../templates/python_template.tmpl"
+	filePath := "../temp/script.py"
 	createFileFromTemplate(tmplPath, filePath, data)
 
 }
@@ -97,14 +95,14 @@ func CreateJsCode(code string, testCase module.TestCase) {
 	}
 
 	//Create script file
-	tmplPath := "./templates/js_template.tmpl"
-	filePath := "./temp/script.js"
+	tmplPath := "../templates/js_template.tmpl"
+	filePath := "../temp/script.js"
 	createFileFromTemplate(tmplPath, filePath, data)
 
 }
 
 func CreateDokerfile(language string) {
-	filePath := "./temp/Dockerfile"
+	filePath := "../temp/Dockerfile"
 	var code string
 	//Define other dockerfile for each language
 	switch language {
@@ -124,12 +122,12 @@ func CreateDokerfile(language string) {
 }
 
 func CreateYamlFile(params structures.YamlParameters) {
-	tmpl, err := template.ParseFiles("./templates/job.tmpl")
+	tmpl, err := template.ParseFiles("../templates/job.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	outputFile, err := os.Create("./temp/job.yaml")
+	outputFile, err := os.Create("../temp/job.yaml")
 	if err != nil {
 		panic(err)
 	}
