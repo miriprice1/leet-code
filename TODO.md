@@ -4,17 +4,17 @@ This project is a dummy project for the leet-code.com site, allowing users to so
 
 **Tasks to Complete:**
 
-    *1. Improving Edit Question Option:* Currently, the selected question is presented to the user in the form of a JSON object, which is not ideal. 
-    The goal is to display each field in a suitable input box to create a more user-friendly interface.
+ *1. Improving Edit Question Option:* Currently, the selected question is presented to the user in the form of a JSON object, which is not ideal. 
+ The goal is to display each field in a suitable input box to create a more user-friendly interface.
 
-    *2. Enhancing Solution Feedback:* Provide feedback to the user in case of incorrect solutions or compilation errors. 
-    Display details of the error and its location for better understanding.
+ *2. Enhancing Solution Feedback:* Provide feedback to the user in case of incorrect solutions or compilation errors. 
+  Display details of the error and its location for better understanding.
 
-    *3. Implement Logging Functionality:* Create a log file to record all user actions. 
-    Develop a dedicated middleware to log every request sent to the server, along with all user actions.
+ *3. Implement Logging Functionality:* Create a log file to record all user actions. 
+ Develop a dedicated middleware to log every request sent to the server, along with all user actions.
 
-    *4. User Management System:* Implement a user management system, including user registration, login functionality, 
-    point accumulation for correct solutions, and tracking of questions solved by each user.
+ *4. User Management System:* Implement a user management system, including user registration, login functionality, 
+ point accumulation for correct solutions, and tracking of questions solved by each user.
 
 **Bugs to Fix:**
 
