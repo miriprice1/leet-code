@@ -4,7 +4,7 @@ This project is a dummy project for the leet-code.com site, allowing users to so
 
 *Tasks to Complete:*
 
-    1. Improving Edit Question Option: Currently, the selected question is presented to the user in the form of a JSON object, which is not ideal. 
+    1. **Improving Edit Question Option:** Currently, the selected question is presented to the user in the form of a JSON object, which is not ideal. 
        The goal is to display each field in a suitable input box to create a more user-friendly interface.
 
     2. Enhancing Solution Feedback: Provide feedback to the user in case of incorrect solutions or compilation errors. 
