@@ -27,9 +27,9 @@ note: before you starting go to docker-compose.yml file and change the volume pa
 4. **Run the App:**
    for windows:
    ```bash
-    .\come-on-leet-code.exe
+    .\leetcode-com.exe
     ```
     for linux / macOS:
    ```bash
-    ./come-on-leet-code
+    ./leetcode-com
     ```
